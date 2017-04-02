@@ -1,0 +1,209 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Spring '16 Reservations</title>
+    
+    <style>
+        /* Graphic Styles go here */
+        text {
+            font-family: Georgia, serif;
+            font-size: 40px;
+        }
+        
+    </style>
+    
+    <script src="http://d3js.org/d3.v4.min.js" charset="utf-8"></script>
+    <script type="text/javascript">
+        /* variables, javascript and D3 functions go here */
+        // define a container variable to hold your data
+        
+        function draw() {
+            var width = 8000;
+            var height = 5000;
+            var titleHeight = 30;
+            
+            var dayHeight = height/7;
+            var hourWidth = width/24;
+            var minuteWidth = hourWidth/60;
+            
+            var svgContainer = d3.select("#graphic")
+                    .attr("width", width)
+                    .attr("height", height + titleHeight);
+            
+            var background = svgContainer.append("rect")
+                    .attr("width", width)
+                    .attr("height", height + titleHeight)
+                    .attr("fill", "white");
+            
+            var weekday = new Array(7);
+            weekday[0] =  "Sunday";
+            weekday[1] = "Monday";
+            weekday[2] = "Tuesday";
+            weekday[3] = "Wednesday";
+            weekday[4] = "Thursday";
+            weekday[5] = "Friday";
+            weekday[6] = "Saturday";
+            
+            var organizers = ["Staff", "Faculty", "Student", "Community", "OpenGrounds"];
+            
+            
+            for (day = 0; day < 7; day++) {
+                for (hour = 0; hour < 24; hour++) {
+                    var timeText = svgContainer.append("text") 
+                        .attr("text-anchor", "start")
+                        .attr("x", function() { return hourWidth * hour; })
+                        .attr("y", function() { return dayHeight * day + 5*(dayHeight/8); })
+                        .text(function() { return hour + ":00"; });
+                }
+                var dayText = svgContainer.append("text")
+                    .attr("text-anchor", "start")
+                    .attr("x", 0)
+                    .attr("y", function() { return dayHeight * day + 40; })
+                    .text(function() { return weekday[day]; });
+                
+                for (i = 0; i < 5; i++) {
+                    var organizerText = svgContainer.append("text")
+                        .attr("text-anchor", "end")
+                        .attr("x", width)
+                        .attr("y", function() { return dayHeight * day + 40 + (i * (dayHeight/8)); })
+                        .text(function() { return organizers[i]; });
+                }
+            }
+            
+            var title = svgContainer.append("text")
+                .attr("text-anchor", "start")
+                .attr("x", 0)
+                .attr("y", height)
+                .style("font-size", "80px")
+                .text("OpenGrounds Spring 2016 Reservations");
+            
+            var color = "";
+            var offset = 0;
+            
+            d3.csv("data/SpringReservationHours.csv", function(data) {
+                data.forEach( function(d) {
+                    switch (d.Organizer) {
+                        case "Staff":
+                            color = "#FFBE0B";
+                            offset = 0;
+                            break;
+                        case "Faculty":
+                            color = "#FB5607";
+                            offset = 1;
+                            break;
+                        case "Student":
+                            color = "#FF006E";
+                            offset = 2;
+                            break;
+                        case "Community":
+                            color = "#8338EC";
+                            offset = 3;
+                            break;
+                        case "OpenGrounds":
+                            color = "#3A86FF";
+                            offset = 4;
+                            break;
+                        default:
+                            color = "#000000";
+                            offset = 0;
+                    }
+                    console.log(d.Name); 
+                    
+                    var startTime = new Date(d.Date),
+                    s = d.Start;
+                    parts = s.match(/(\d+)\:(\d+)(.*) (\w+)/),
+                    hours = /am/i.test(parts[4]) ? parseInt(parts[1], 10) : parseInt(parts[1], 10) + 12,
+                    minutes = parseInt(parts[2], 10);
+                    startTime.setHours(hours, minutes,0,0);
+                    startDay = startTime.getDay();
+                    
+                    
+                    var endTime = new Date(d.Date),
+                    s = d.End;
+                    parts = s.match(/(\d+)\:(\d+)(.*) (\w+)/),
+                    hours = /am/i.test(parts[4]) ? parseInt(parts[1], 10) : parseInt(parts[1], 10) + 12,
+                    minutes = parseInt(parts[2], 10);
+                    endTime.setHours(hours, minutes,0,0);
+                    endDay = endTime.getDay();
+                
+                    
+                    if (startTime > endTime) {      
+                        if (startTime.getHours() == 0) { //because startime was advanced 12 hours from 12pm problem
+                            startTime.setHours(startTime.getHours() - 12); 
+                        }
+                        if (startTime.getHours() > endTime.getHours()) { //wrong date for end time, should be next morning
+                            endTime.setDate(startTime.getDate() + 1);
+                        }
+                    }
+                    
+                    var duration = ((endTime.getHours() + endTime.getMinutes()/60) - (startTime.getHours() + startTime.getMinutes()/60));
+                    if (duration < 0) {
+                        duration += 24;
+                        console.log("LATE NIGHT");
+                    };
+                    
+                    
+                    switch (d.Organizer) {
+                        case "Staff":
+                            color = "#FFBE0B";
+                            offset = 0;
+                            break;
+                        case "Faculty":
+                            color = "#FB5607";
+                            offset = 1;
+                            break;
+                        case "Student":
+                            color = "#FF006E";
+                            offset = 2;
+                            break;
+                        case "Community":
+                            color = "#8338EC";
+                            offset = 3;
+                            break;
+                        case "OpenGrounds":
+                            color = "#3A86FF";
+                            offset = 4;
+                            break;
+                        default:
+                            color = "#00FF00";
+                            offset = 0;
+                    }
+                    
+                    var rect = svgContainer.append("rect") 
+                        .attr("x", function() { return hourWidth*startTime.getHours() + minuteWidth*startTime.getMinutes(); })
+                        .attr("y", function() { return dayHeight*startTime.getDay() + offset * (dayHeight/8); })
+                        .attr("width", function() { return duration * hourWidth; })
+                        .attr("height", dayHeight/8)
+                        .attr("fill-opacity", 0.1)
+                        .attr("fill", color);      
+                    
+                    console.log(startTime.getDay() + " " + endTime.getDay());
+                    
+                    if (startTime.getDay() < endTime.getDay() || (startTime.getDay() == 6 && endTime.getDay() == 0)) { //events continuing to the next day
+                        var rect = svgContainer.append("rect")
+                            .attr("x", 0)
+                            .attr("y", function() { return dayHeight*endTime.getDay() + offset * (dayHeight/8); })
+                            .attr("width", function() { return hourWidth*endTime.getHours() + minuteWidth*endTime.getMinutes(); })
+                            .attr("height", dayHeight/8)
+                            .attr("fill-opacity", 0.1)
+                            .attr("fill", color);  
+                        console.log("rad" + endTime.getHours());
+                    }
+                    
+                })
+                    
+
+                })
+            }
+        
+    </script>
+</head>
+<body onload="draw()">
+    <!--HTML page objects go here-->
+    
+    <svg id="graphic">
+
+
+</body>
+</html>
