@@ -14,13 +14,14 @@
     </style>
     
     <script src="http://d3js.org/d3.v4.min.js" charset="utf-8"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.0/jquery.min.js"></script>
     <script type="text/javascript">
         /* variables, javascript and D3 functions go here */
         // define a container variable to hold your data
         
         function draw() {
-            var width = 8000;
-            var height = 5000;
+            var width = $(window).width() * 0.98;
+            var height = $(window).height() * 0.98;
             var titleHeight = 30;
             
             var dayHeight = height/7;
@@ -53,7 +54,7 @@
                     var timeText = svgContainer.append("text") 
                         .attr("text-anchor", "start")
                         .attr("x", function() { return hourWidth * hour; })
-                        .attr("y", function() { return dayHeight * day + 5*(dayHeight/8); })
+                        .attr("y", function() { return dayHeight * day + 5*(dayHeight/8) +40; })
                         .text(function() { return hour + ":00"; });
                 }
                 var dayText = svgContainer.append("text")
@@ -81,7 +82,7 @@
             var color = "";
             var offset = 0;
             
-            d3.csv("data/SpringReservationHours.csv", function(data) {
+            d3.csv("SpringReservationHours.csv", function(data) {
                 data.forEach( function(d) {
                     if (d.Organizer) {
                         
@@ -177,6 +178,8 @@
                             .attr("y", function() { return dayHeight*startTime.getDay() + offset * (dayHeight/8); })
                             .attr("width", function() { return duration * hourWidth; })
                             .attr("height", dayHeight/8)
+                            .attr("stroke", "black")
+                            .attr("stroke-width", 1)    
                             .attr("fill-opacity", 0.1)
                             .attr("fill", color);      
 
@@ -188,6 +191,8 @@
                                 .attr("y", function() { return dayHeight*endTime.getDay() + offset * (dayHeight/8); })
                                 .attr("width", function() { return hourWidth*endTime.getHours() + minuteWidth*endTime.getMinutes(); })
                                 .attr("height", dayHeight/8)
+                                .attr("stroke", "black")
+                                .attr("stroke-width", 1)
                                 .attr("fill-opacity", 0.1)
                                 .attr("fill", color);  
                             console.log("rad" + endTime.getHours());
