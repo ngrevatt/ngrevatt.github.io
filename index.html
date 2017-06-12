@@ -13,7 +13,7 @@
         
     </style>
     
-    <script src="http://d3js.org/d3.v4.min.js" charset="utf-8"></script>
+    <script src="https://d3js.org/d3.v4.min.js" charset="utf-8"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.0/jquery.min.js"></script>
     <script type="text/javascript">
         /* variables, javascript and D3 functions go here */
@@ -22,7 +22,7 @@
         function draw() {
             var width = $(window).width() * 0.98;
             var height = $(window).height() * 0.98;
-            var titleHeight = 30;
+            var titleHeight = 100;
             
             var dayHeight = height/7;
             var hourWidth = width/24;
@@ -32,10 +32,26 @@
                     .attr("width", width)
                     .attr("height", height + titleHeight);
             
+            //nontransparent background
             var background = svgContainer.append("rect")
                     .attr("width", width)
                     .attr("height", height + titleHeight)
                     .attr("fill", "white");
+            
+            //draw title
+            var title = svgContainer.append("text")
+                .attr("text-anchor", "start")
+                .attr("x", 0)
+                .attr("y", 80)
+                .style("font-size", "80px")
+                .text("OpenGrounds Event Reservations (Spring '16) and Corner Police Reports (Spring '17)");
+            
+            var title = svgContainer.append("text")
+                .attr("text-anchor", "end")
+                .attr("x", width)
+                .attr("y", 80)
+                .style("font-size", "80px")
+                .text("by Nathaniel Grevatt");
             
             var weekday = new Array(7);
             weekday[0] =  "Sunday";
@@ -48,40 +64,97 @@
             
             var organizers = ["Staff", "Faculty", "Student", "Community", "OpenGrounds"];
             
-            
             for (day = 0; day < 7; day++) {
+                //create time scale
                 for (hour = 0; hour < 24; hour++) {
                     var timeText = svgContainer.append("text") 
                         .attr("text-anchor", "start")
+                        .style("font-size", "40px")
                         .attr("x", function() { return hourWidth * hour; })
-                        .attr("y", function() { return dayHeight * day + 5*(dayHeight/8) +40; })
-                        .text(function() { return hour + ":00"; });
+                        .attr("y", function() { return dayHeight * day + 5*(dayHeight/8) +40 +titleHeight; })
+                        .text(function() { return hour; }); /* { return hour + ":00";}  */
                 }
+                //write days of week
                 var dayText = svgContainer.append("text")
                     .attr("text-anchor", "start")
+                    .style("font-size", "40px")
                     .attr("x", 0)
-                    .attr("y", function() { return dayHeight * day + 40; })
+                    .attr("y", function() { return dayHeight * day + 40 +titleHeight; })
                     .text(function() { return weekday[day]; });
                 
+                //add organizers
                 for (i = 0; i < 5; i++) {
                     var organizerText = svgContainer.append("text")
                         .attr("text-anchor", "end")
+                        .style("font-size", "40px")
                         .attr("x", width)
-                        .attr("y", function() { return dayHeight * day + 40 + (i * (dayHeight/8)); })
+                        .attr("y", function() { return dayHeight * day + 40 + (i * (dayHeight/8)) +titleHeight + 40; })
                         .text(function() { return organizers[i]; });
                 }
             }
             
-            var title = svgContainer.append("text")
-                .attr("text-anchor", "start")
-                .attr("x", 0)
-                .attr("y", height)
-                .style("font-size", "80px")
-                .text("OpenGrounds Spring 2016 Reservations");
+            //draw hour lines
+//            for (hour = 0; hour < 24; hour++) {
+//                var hourLines = svgContainer.append("line")
+//                    .attr("stroke-width", 1)
+//                    .attr("stroke", "grey")
+//                    .attr("x1", function() {return hourWidth * hour; })
+//                    .attr("x2", function() {return hourWidth * hour; })
+//                    .attr("y1", titleHeight)
+//                    .attr("y2", height + titleHeight);
+//                //console.log("line?");
+//            }
             
+            //initialize variables
             var color = "";
             var offset = 0;
             
+            //"YOU ARE HERE"
+            var rightNow = new Date($.now());
+            var youAreHere = svgContainer.append("rect") 
+                .attr("x", function() { return hourWidth*rightNow.getHours() + minuteWidth*rightNow.getMinutes() - 0.25*hourWidth; })
+                .attr("y", function() { return dayHeight*rightNow.getDay() + offset * (dayHeight/8) +titleHeight; })
+                .attr("width", function() { return 0.5 * hourWidth; })  //15 minutes for you are here?
+                .attr("height", 6*dayHeight/8)
+                .attr("stroke", "black")
+                .attr("stroke-width", 5)    
+                .attr("fill-opacity", 0)
+                .append("svg:title") //title appended here
+                    .text(function(d) {return "YOU ARE HERE";});
+            
+            var youAreHereText = svgContainer.append("text")
+                .attr("text-anchor", "start")
+                .attr("x", function() { return hourWidth*rightNow.getHours() + minuteWidth*rightNow.getMinutes() - 0.25*hourWidth; }) // + 0.5*hourWidth
+                .attr("y", function() { return dayHeight*rightNow.getDay() + offset * (dayHeight/8) +titleHeight - 10; })
+                .style("font-size", (dayHeight/8))
+                .text("YOU ARE HERE ["+rightNow.getHours()+":"+rightNow.getMinutes()+"]");
+            
+            //crime filtering by date: this could be set to min and max of OG events if they fell in the same year
+            var crimeStartWindow = new Date("1/5/2017");
+            var crimeEndWindow = new Date("4/30/2017");
+            var title = "";
+            
+            //DRAW CRIMES
+            d3.csv("CornerCrimes.csv", function(data) {
+                data.forEach (function(d) {
+                    var crimeDate = new Date(d.Date);
+                    if (crimeDate > crimeStartWindow && crimeDate < crimeEndWindow) {
+                        title = d.Description.concat(" at ").concat(d.Location).concat(" on ").concat(d.Date);
+                        var crimeLine = svgContainer.append("line")
+                            .attr("x1", function() {return hourWidth * crimeDate.getHours() + minuteWidth*crimeDate.getMinutes(); })
+                            .attr("x2", function() {return hourWidth * crimeDate.getHours() + minuteWidth*crimeDate.getMinutes(); })
+                            .attr("y1", function() {return dayHeight*crimeDate.getDay() +titleHeight; })
+                            .attr("y2", function() {return dayHeight*crimeDate.getDay() + 6*(dayHeight/8) +titleHeight; })
+                            .attr("stroke-width", 30)
+                            .attr("opacity", 0.5)
+                            .attr("stroke", "red")
+                            .append("svg:title") //title appended here
+                                .text(function(d) {return title;});
+                    }
+                })  
+            })
+            
+            //DRAW OG EVENTS
             d3.csv("SpringReservationHours.csv", function(data) {
                 data.forEach( function(d) {
                     if (d.Organizer) {
@@ -89,29 +162,31 @@
                         switch (d.Organizer) {
                             case "Staff":
                                 color = "#FFBE0B";
-                                offset = 0;
+                                offset = 1;
                                 break;
                             case "Faculty":
                                 color = "#FB5607";
-                                offset = 1;
+                                offset = 2;
                                 break;
                             case "Student":
                                 color = "#FF006E";
-                                offset = 2;
+                                offset = 3;
                                 break;
                             case "Community":
                                 color = "#8338EC";
-                                offset = 3;
+                                offset = 4;
                                 break;
                             case "OpenGrounds":
                                 color = "#3A86FF";
-                                offset = 4;
+                                offset = 5;
                                 break;
                             default:
                                 color = "#000000";
                                 offset = 0;
+                                console.log(d.Name); //this is an error in the dataset
                         }
-                        console.log(d.Name); 
+                        title = d.Name;
+                        /* console.log(d.Name); */
 
                         var startTime = new Date(d.Date),
                         s = d.Start;
@@ -143,59 +218,36 @@
                         var duration = ((endTime.getHours() + endTime.getMinutes()/60) - (startTime.getHours() + startTime.getMinutes()/60));
                         if (duration < 0) {
                             duration += 24;
-                            console.log("LATE NIGHT");
+                            /*console.log("LATE NIGHT"); */
                         };
-
-
-                        switch (d.Organizer) {
-                            case "Staff":
-                                color = "#FFBE0B";
-                                offset = 0;
-                                break;
-                            case "Faculty":
-                                color = "#FB5607";
-                                offset = 1;
-                                break;
-                            case "Student":
-                                color = "#FF006E";
-                                offset = 2;
-                                break;
-                            case "Community":
-                                color = "#8338EC";
-                                offset = 3;
-                                break;
-                            case "OpenGrounds":
-                                color = "#3A86FF";
-                                offset = 4;
-                                break;
-                            default:
-                                color = "#00FF00";
-                                offset = 0;
-                        }
 
                         var rect = svgContainer.append("rect") 
                             .attr("x", function() { return hourWidth*startTime.getHours() + minuteWidth*startTime.getMinutes(); })
-                            .attr("y", function() { return dayHeight*startTime.getDay() + offset * (dayHeight/8); })
+                            .attr("y", function() { return dayHeight*startTime.getDay() + offset * (dayHeight/8) +titleHeight; })
                             .attr("width", function() { return duration * hourWidth; })
                             .attr("height", dayHeight/8)
                             .attr("stroke", "black")
                             .attr("stroke-width", 1)    
                             .attr("fill-opacity", 0.1)
-                            .attr("fill", color);      
+                            .attr("fill", color)
+                            .append("svg:title") //title appended here
+                                .text(function(d) {return title;});
 
-                        console.log(startTime.getDay() + " " + endTime.getDay());
+                        /* console.log(startTime.getDay() + " " + endTime.getDay()); */
 
                         if (startTime.getDay() < endTime.getDay() || (startTime.getDay() == 6 && endTime.getDay() == 0)) { //events continuing to the next day
                             var rect = svgContainer.append("rect")
                                 .attr("x", 0)
-                                .attr("y", function() { return dayHeight*endTime.getDay() + offset * (dayHeight/8); })
+                                .attr("y", function() { return dayHeight*endTime.getDay() + offset * (dayHeight/8) +titleHeight; })
                                 .attr("width", function() { return hourWidth*endTime.getHours() + minuteWidth*endTime.getMinutes(); })
                                 .attr("height", dayHeight/8)
                                 .attr("stroke", "black")
                                 .attr("stroke-width", 1)
                                 .attr("fill-opacity", 0.1)
-                                .attr("fill", color);  
-                            console.log("rad" + endTime.getHours());
+                                .attr("fill", color)
+                                .append("svg:title") //title appended here
+                                    .text(function(d) {return title;});
+                            //console.log("rad" + endTime.getHours());
                         }
                     }
                 })
@@ -203,6 +255,8 @@
 
                 })
             }
+        
+             
         
     </script>
 </head>
